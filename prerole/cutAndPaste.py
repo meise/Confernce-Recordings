@@ -12,6 +12,11 @@
 #
 #    You should have received a copy of the GNU General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+import argparse
+import fileinput
+import commands
+import sys
+import os
 
 parser = argparse.ArgumentParser(description='Cut the rawdv an paste prerole: make sure you have ffmpeg $PATH')
 parser.add_argument('-i', action="store", dest="id", help="talk id")
