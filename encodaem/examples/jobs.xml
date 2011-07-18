@@ -1,0 +1,19 @@
+<?xml version='1.0' encoding='utf-8' ?>
+<jobs>
+  <job id='1'>
+    <work>encode</work>
+    <talk id='580'>
+      <slug>hs5_-_2011-08-21_16:30_-_open_source_sw_governance_in_an_industrial_environment_-_norbert_kraft_-_636</slug>
+    </talk>
+    <recodrings>
+      <recording>
+        <file>HS12_-_2009-08-22_-_17:15:00.dv</file>
+        <start>00:00:00</start>
+        <end>11:22:33</end>
+      </recording>
+      <recording>
+        <file>HS12_-_2009-08-22_-_17:15:00.2.dv</file>
+      </recording>
+    </recodrings>
+  </job>
+</jobs>
