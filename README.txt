@@ -6,4 +6,4 @@ You are free to use them in you own projects as long as you
 respect the licenses of the particular file.
 Note that this is a collection of scripts so the license may differ from script to script.
 
-have and "viel spaß am gerät"
+have fun and "viel spaß am gerät"
