@@ -18,7 +18,6 @@ You should have received a copy of the GNU General Public License
 along with Encodaem.  If not, see <http://www.gnu.org/licenses/>.
 =end
 
-
 require 'rubygems'
 require 'daemons'
 require 'nokogiri'
@@ -99,9 +98,14 @@ class PreRoller
   # creates the pre-roll and adds it to the complete talk
   # you should cut all files of a talk to a big one before you create the pre-roll
   def create_pre_roll (talk, daemon)
-    if system("python ../prerole/genPrerole.py -i #{talk.talk_id} -o #{daemon.encoded_directory}/H264 -v #{daemon.cut_directory} -t #{daemon.cpu_cores}")
+    if system("python ../prerole/genPrerole.py -i #{talk.talk_id} -o #{daemon.tmp_directory}-v #{daemon.cut_directory} -t #{daemon.cpu_cores}")
       # TODO: Send pre roll created message into logfile
       puts "Pre roll created".color('green')
+      if system("python ../prerole/cutAndPaste.py -i #{talk.talk_id} -o #{daemon.cut_directory} -v #{daemon.tmp_directory} -t #{daemon.cpu_cores} -s #{talk.start} -e #{talk.end}")
+        puts "Time cut finished. Time to encode talk #{talk.talk_id}.".color('green')
+      else
+        puts "Error: Time cut failed #{talk.talk_id}.".color('red')
+      end
     else
       # TODO: Log pre roll created error into logfile
       puts "Error: Pre roll creation fails!".color('red')
