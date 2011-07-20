@@ -22,6 +22,7 @@ require 'rubygems'
 require 'daemons'
 require 'nokogiri'
 require 'fileutils'
+require 'rainbow'
 
 class Encoder
   # encode the raw.dv file
@@ -49,7 +50,7 @@ class Encoder
                  "Error: Could not copy #{talk.talk_id} Theora file to #{daemon.encoded_directory}/Theora/".color('red')
               end
 
-              else
+            else
                 "Error: Could not copy #{talk.talk_id} mp4 file to #{daemon.encoded_directory}/H264/".color('red')
             end
 
@@ -79,11 +80,15 @@ class Cutter
   # cuts all files to one
   def cut (talk, daemon)
     files = ''
+    puts talk.files
 
     # build a string of all given talk files
     talk.files.each do |file|
-      files += "#{daemon.recorded_directory}" + file + " "
+      files += "#{daemon.recorded_directory}/" + file + " "
+      puts files
     end
+
+    puts "Start catting \n cat #{files} > #{daemon.cut_directory}/#{talk.talk_id}.dv"
 
     # concatenate all files
     if system("cat #{files} > #{daemon.cut_directory}/#{talk.talk_id}.dv")
@@ -101,7 +106,7 @@ class PreRoller
     if system("python ../prerole/genPrerole.py -i #{talk.talk_id} -o #{daemon.tmp_directory}-v #{daemon.cut_directory} -t #{daemon.cpu_cores}")
       # TODO: Send pre roll created message into logfile
       puts "Pre roll created".color('green')
-      if system("python ../prerole/cutAndPaste.py -i #{talk.talk_id} -o #{daemon.cut_directory} -v #{daemon.tmp_directory} -t #{daemon.cpu_cores} -s #{talk.start} -e #{talk.end}")
+      if system("python ../prerole/cutAndPaste.py -i #{talk.talk_id} -o #{daemon.cut_directory} -v #{daemon.tmp_directory} -t #{daemon.cpu_cores} -s #{talk.start} -e #{talk.end}") # TODO: talk to Peter about the necessity of the -p PREROLEDIR option
         puts "Time cut finished. Time to encode talk #{talk.talk_id}.".color('green')
       else
         puts "Error: Time cut failed #{talk.talk_id}.".color('red')
@@ -116,7 +121,7 @@ end
 
 class Talk
 
-  attr_accessor :talk_id, :slug, :speakers, :files, :start, :end, :work
+  attr_accessor :talk_id, :slug, :speakers, :files, :start, :finished, :work
 
   def initialize
     @talk_id = ''
@@ -124,7 +129,7 @@ class Talk
     @speakers = []
     @files = []
     @start = ''
-    @end = ''
+    @finished = ''
     @work = ''
   end
 end
@@ -132,7 +137,7 @@ end
 class Parser
 
   def initialize 
-    @doc = Nokogiri.parse(File.open("/home/dm/projects/Confernce-Recordings/worker_daemon/examples/jobs.xml"))
+    @doc = Nokogiri.parse(File.open("/home/dm/Confernce-Recordings/encodaem/examples/jobs.xml"))
   end
 
   def parse
@@ -156,35 +161,35 @@ class Parser
             @talk.slug = slug.text.to_s
           end
 
+          talk.xpath("//start").each do |start|
+            @talk.start = start.text.to_s
+          end
+
+          talk.xpath("//finished").each do |finished|
+            @talk.finished = finished.text.to_s
+          end
+
+
+
           @talk.speakers = []
 
-          talk.xpath("//speaker").each do |speaker|
 
-            tmp_speaker = ''
-
-            speaker.xpath("//forename").each do |forename|
-               tmp_speaker += forename.text.to_s
-            end
-
-            speaker.xpath("//surname").each do |surname|
-
-                tmp_speaker += " " + surname.text.to_s
-            end
-
-            @talk.speaker << tmp_speaker
-
+          talk.xpath("//speakers/speaker").each do |speaker|
+            @talk.speakers << speaker.text.to_s
           end
-          @talk.files = []
 
-          talk.xpath("//recordings").each do |recording|
-
-            recording.xpath("//file").each do |file|
-              # files_to_cat << file.text.to_s
-              @talk.files << file.text.to_s
-            end
-          end
-          # puts files_to_cat.to_s
         end
+
+        @talk.files = []
+
+        job.xpath("//recordings").each do |recording|
+
+          recording.xpath("//file").each do |file|
+            # files_to_cat << file.text.to_s
+            @talk.files << file.text.to_s
+          end
+        end
+
       end
       @talk
     end
@@ -206,7 +211,7 @@ class Daemon
     @work_done_url = "work_done"
 
     # working directory
-    @landing_zone = "/home/dm/projects/Confernce-Recordings/worker_daemon/"
+    @landing_zone = "/var/www/"
     @cut_directory = "#{@landing_zone}cutted"
     @encoded_directory = "#{@landing_zone}encoded"
     @recorded_directory = "#{@landing_zone}recorded"
@@ -279,6 +284,14 @@ begin
     # parsing should be successful
     if talk = parser.parse
 
+      puts talk.talk_id
+      puts talk.slug
+      puts talk.speakers
+      puts talk.files
+      puts talk.start
+      puts talk.finished
+      puts talk.work
+
       case talk.work
         when 'encode'
           Encoder.new.encode(talk, daemon)
@@ -286,6 +299,9 @@ begin
           Cutter.new.cut(talk, daemon)
         when 'pre_roll'
           PreRoller.new.create_pre_roll(talk, daemon)
+        when 'nothing'
+          puts "Nothing to do... sleep for #{sleep_timer}s"
+          sleep(sleep_timer)
       end
 
       # reset sleeping timer
